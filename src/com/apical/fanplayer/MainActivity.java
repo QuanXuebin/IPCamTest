@@ -114,6 +114,7 @@ public class MainActivity extends Activity {
 	private void initView() {
 		mListView  = (ListView) findViewById(R.id.list_view);
 		mWifiIPtxt = (TextView) findViewById(R.id.wifiIpText);
+		mWifiIPtxt.setVisibility(View.GONE);
 		mWifiIPtxt.setText("IPCamTest:"+getLocalIPAddress());
 	}
 
@@ -207,6 +208,10 @@ public class MainActivity extends Activity {
 	    			if(getWifiCutIP()==null)
 	    			{
 	    				mWifiIPtxt.setText("没有网络");
+	    				mDeviceList.clear();
+	    				Message msg  = mHander.obtainMessage();
+						msg.what     = UPDATE_LIST;
+						mHander.sendMessage(msg);
 	    				continue;
 	    			}
 	    			else
@@ -381,7 +386,7 @@ public class MainActivity extends Activity {
     }
 	
 	private void showListDialog(final int position) {
-	    final String[] items = { "管理页面","播放视频" };
+	    final String[] items = { "管理设备","查看视频" };
 	    AlertDialog.Builder listDialog = 
 	        new AlertDialog.Builder(MainActivity.this,R.style.Dialog);
 	    listDialog.setItems(items, new DialogInterface.OnClickListener() {

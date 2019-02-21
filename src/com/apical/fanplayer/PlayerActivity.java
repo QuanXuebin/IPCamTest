@@ -4,13 +4,17 @@ import com.example.fanplayer4_2_2.R;
 
 import android.app.Activity;
 import android.app.AlertDialog;
+import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.database.Cursor;
 import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
+import android.os.PowerManager;
+import android.os.PowerManager.WakeLock;
 import android.provider.MediaStore;
 import android.view.MotionEvent;
 import android.view.Surface;
@@ -18,6 +22,7 @@ import android.view.SurfaceHolder;
 import android.view.SurfaceView;
 import android.view.View;
 import android.view.SurfaceHolder.Callback;
+import android.view.WindowManager;
 import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.ProgressBar;
@@ -34,6 +39,7 @@ public class PlayerActivity extends Activity {
     private ImageView    mPause     = null;
     private boolean      mIsPlaying = false;
     private boolean      mIsLive    = false;
+    private WakeLock     wakeLock   = null;
     private String       mURL       = "rtsp://192.168.0.88/video0";
     private Surface      mVideoSurface;
     private int          mVideoViewW;
@@ -44,7 +50,7 @@ public class PlayerActivity extends Activity {
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.player_main_layout);
-
+        hideBottomUIMenu();
         Intent intent = getIntent();
         String action = intent.getAction();
         if ("player".equals(action)) {
@@ -85,7 +91,7 @@ public class PlayerActivity extends Activity {
                 public void onClick(DialogInterface dialog, int which) {
                     mURL = edt.getText().toString();
                     mIsLive = mURL.startsWith("http://") && mURL.endsWith(".m3u8") || mURL.startsWith("rtmp://") || mURL.startsWith("rtsp://");
-                    mPlayer = new MediaPlayer(mURL, mHandler, "video_hwaccel=1;init_timeout=500;auto_reconnect=500");
+                    mPlayer = new MediaPlayer(mURL, mHandler, "video_hwaccel=1;init_timeout=1000;auto_reconnect=1000");
                     mPlayer.setDisplaySurface(mVideoSurface);
                     testPlayerPlay(true);
                 }
@@ -156,6 +162,7 @@ public class PlayerActivity extends Activity {
 
         // show buttons with auto hide
         showUIControls(true, true);
+        getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
     }
 
     @Override
@@ -271,6 +278,21 @@ public class PlayerActivity extends Activity {
             }
         }
     };
-	
+    /**
+     * Òþ²ØÐéÄâ°´¼ü£¬²¢ÇÒÈ«ÆÁ
+     */
+    protected void hideBottomUIMenu() {
+        //Òþ²ØÐéÄâ°´¼ü£¬²¢ÇÒÈ«ÆÁ
+        if (Build.VERSION.SDK_INT > 11 && Build.VERSION.SDK_INT < 19) { // lower api
+            View v = this.getWindow().getDecorView();
+            v.setSystemUiVisibility(View.GONE);
+        } else if (Build.VERSION.SDK_INT >= 19) {
+            //for new api versions.
+            View decorView = getWindow().getDecorView();
+            int uiOptions = View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
+                            | View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY | View.SYSTEM_UI_FLAG_FULLSCREEN;
+            decorView.setSystemUiVisibility(uiOptions);
+        }
+    }
 	
 }

@@ -56,7 +56,8 @@ public class MainActivity extends Activity {
 	private Object obj                            = null;
 	private Context mContext                      = null;
 	private Map<String,String> mDeviceData        = null;
-	private ArrayList<Device>  mDeviceList        = null;
+	private ArrayList<Device>  mNewDeviceList     = null;
+	private ArrayList<Device>  mOldDeviceList     = null;
 	private DeviceAdapter      mDeviceAdapter     = null;
 	private TextView           mWifiIPtxt         = null;
 	private ListView           mListView          = null;
@@ -64,7 +65,7 @@ public class MainActivity extends Activity {
 	private DatagramPacket     mSendPacket        = null;
 	private DatagramPacket     mRecvPacket        = null;
 	private byte[]             mSendData          = null;
-	private byte[]             mRecvDate          = null;
+	
 	private String             mURL               = "rtsp://192.168.0.88/video0";
 	private Uri                mUri               = null;
 	private Thread             mThread;
@@ -114,13 +115,13 @@ public class MainActivity extends Activity {
 	private void initView() {
 		mListView  = (ListView) findViewById(R.id.list_view);
 		mWifiIPtxt = (TextView) findViewById(R.id.wifiIpText);
-		mWifiIPtxt.setVisibility(View.GONE);
+		//mWifiIPtxt.setVisibility(View.GONE);
 		mWifiIPtxt.setText("IPCamTest:"+getLocalIPAddress());
 	}
 
 	private void initData() {
-        mDeviceList    = new ArrayList<Device>();
-        mDeviceAdapter = new DeviceAdapter(mDeviceList, mContext);
+        mNewDeviceList    = new ArrayList<Device>();
+        mDeviceAdapter = new DeviceAdapter(mNewDeviceList, mContext);
         mDeviceData    = new HashMap<String,String>();
         String  tempIP = getWifiCutIP();
         for(int j=1;j<255;j++)
@@ -208,7 +209,7 @@ public class MainActivity extends Activity {
 	    			if(getWifiCutIP()==null)
 	    			{
 	    				mWifiIPtxt.setText("没有网络");
-	    				mDeviceList.clear();
+	    				mNewDeviceList.clear();
 	    				Message msg  = mHander.obtainMessage();
 						msg.what     = UPDATE_LIST;
 						mHander.sendMessage(msg);
@@ -237,14 +238,14 @@ public class MainActivity extends Activity {
 					{
 						Log.i(TAG,"发送消息出错");
 					}
-					mRecvDate   = null;
-					mRecvDate   = new byte[256];
-					mRecvPacket = new DatagramPacket(mRecvDate, 0, mRecvDate.length);
+					
 					boolean scan_thread = true;
 					long  timeGetIp     = -1;
 					long  timeGetIpNow  = -1;
 			    	while(scan_thread)
 			    	{
+			    		byte[] mRecvDate = new byte[256];
+						mRecvPacket = new DatagramPacket(mRecvDate, 0, mRecvDate.length);
 			    		Device device = new Device();
 			    		try 
 			    		{
@@ -268,6 +269,8 @@ public class MainActivity extends Activity {
 			    		String devIp    = null;
 			    		boolean addFlag = true;
 		    			String recvUUID = new String(mRecvPacket.getData()).trim();
+		    			String[] tempUUID = recvUUID.split(":");
+		    			recvUUID = tempUUID[1];
 		    			if(mRecvPacket.getAddress() !=null)
 		    			{
 		    				devIp = mRecvPacket.getAddress().getHostAddress();
@@ -276,33 +279,33 @@ public class MainActivity extends Activity {
 		    				device.setDeviceUUID(recvUUID);
 			    			device.setDeviceIP(devIp);
 			    			//相同地址的设备不用重复添加+++++++++++++++++++
-			    			if(mDeviceList.size()==0)
+			    			if(mNewDeviceList.size()==0)
 			    			{
 			    				Log.i(TAG,"reset");
-			    				mDeviceList.add(device);
+			    				mNewDeviceList.add(device);
 			    			}
 			    			else
 			    			{
-			    				for(int i=0;i<mDeviceList.size();i++)
+			    				for(int i=0;i<mNewDeviceList.size();i++)
 			    				{
-			    					if(mDeviceList.get(i).getmDeviceIP().equals(devIp))
+			    					if(mNewDeviceList.get(i).getmDeviceIP().equals(devIp))
 			    					{
 			    						addFlag = false; 
 			    					}
 			    				}
 			    				if(addFlag)
 			    				{
-			    					mDeviceList.add(device);
+			    					mNewDeviceList.add(device);
 			    				}
 			    			}
 			    			//相同地址的设备不用重复添加--------------------
 							Log.i(TAG,"devIp: "+devIp);
 							Log.i(TAG,"recvUUID: "+recvUUID);
-							Log.i(TAG,"mData size: "+mDeviceList.size());
+							Log.i(TAG,"mData size: "+mNewDeviceList.size());
 		    			}
 		    			
 			    	}
-			    	Collections.sort(mDeviceList,new ListSort());
+			    	Collections.sort(mNewDeviceList,new ListSort());
 			    	
 					timeGetIpNow = System.currentTimeMillis();
 					for(String str:mDeviceData.keySet())
@@ -311,22 +314,22 @@ public class MainActivity extends Activity {
 						if(strValue != null)
 						{
 							Long timeValue = Long.valueOf(strValue);
-							for(int i=0;i<mDeviceList.size();i++)
+							for(int i=0;i<mNewDeviceList.size();i++)
 							{
-								String tempIp  = mDeviceList.get(i).getmDeviceIP();
+								String tempIp  = mNewDeviceList.get(i).getmDeviceIP();
 								if(tempIp.equals(str))
 								{
 									//间隔时长达到5秒就从list集合中移除
 									if((timeGetIpNow - timeValue)>6*1000)
 									{
-										mDeviceList.remove(i);
+										mNewDeviceList.remove(i);
 									}
 								}
 							}
 						}
 						
 					}
-					Collections.sort(mDeviceList,new ListSort());
+					Collections.sort(mNewDeviceList,new ListSort());
 					Message msg  = mHander.obtainMessage();
 					msg.what     = UPDATE_LIST;
 					mHander.sendMessage(msg);
@@ -397,17 +400,13 @@ public class MainActivity extends Activity {
 	            switch(which)
 	            {
 	            case SETTING_PAG:
-	            	Toast.makeText(MainActivity.this, 
-	    	                "你点击了" + items[which], 
-	    	                Toast.LENGTH_SHORT).show();
-	            	
-	            	mURL   = "http://"+mDeviceList.get(position).getmDeviceIP()+"/index.html";
+	            	mURL   = "http://"+mNewDeviceList.get(position).getmDeviceIP()+"/index.html";
 	            	mUri   = Uri.parse(mURL);
 	            	Intent intent_html = new Intent(Intent.ACTION_VIEW,mUri);
 	            	startActivity(intent_html);
 	            	break;
 	            case PLAY_VIDEO:
-	            	mURL    = "rtsp://"+mDeviceList.get(position).getmDeviceIP()+"/video0";
+	            	mURL    = "rtsp://"+mNewDeviceList.get(position).getmDeviceIP()+"/video0";
 					mUri    = Uri.parse(mURL);
 					Intent intent_rtsp = new Intent("player",mUri);
 					intent_rtsp.addCategory("com.apical.player");
@@ -418,7 +417,9 @@ public class MainActivity extends Activity {
 	    });
 	    listDialog.show();
 	}
-	
+	/**
+	 * 可获取热点,流量,wifi三种状态下的IP地址,可把我牛逼坏了(叉会腰)·—·
+	 * */
 	public String getLocalIPAddress() {
 	    String ip = "";
 	    try {

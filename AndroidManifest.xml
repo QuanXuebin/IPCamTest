@@ -18,7 +18,7 @@
         android:allowBackup="true"
         android:icon="@drawable/ic_launcher"
         android:label="@string/app_name"
-        android:theme="@android:style/Theme.Black.NoTitleBar.Fullscreen" >
+        android:theme="@android:style/Theme.DeviceDefault.Light" >
         <activity
             android:name="com.apical.fanplayer.MainActivity"
             android:label="@string/app_name" >
@@ -31,7 +31,8 @@
         
         <activity 
             android:name="com.apical.fanplayer.PlayerActivity"
-            android:screenOrientation="landscape">
+            android:screenOrientation="landscape"
+            android:theme="@android:style/Theme.Black.NoTitleBar.Fullscreen">
             <intent-filter >
                 <action   android:name="player"/>
                 <category android:name="android.intent.category.DEFAULT"/>
